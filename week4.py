@@ -1,64 +1,98 @@
-import os
-# 1) Ask the user for a file path
-try:
-    file_path = input("Enter the path to the file to read: ").strip()
-except (EOFError, KeyboardInterrupt):
-    print("No input provided. Exiting.")
-    raise SystemExit(1)
+def read_file(filename):
+    """Read a file and return its content."""
+    try:
+        with open(filename, 'r', encoding='utf-8') as file:
+            content = file.read()
+            print(f" Successfully read '{filename}'")
+            return content
+    except FileNotFoundError:
+        print(f" Error: File '{filename}' not found!")
+        return None
+    except PermissionError:
+        print(f" Error: Cannot read '{filename}' - permission denied!")
+        return None
+    except Exception as e:
+        print(f" Unexpected error: {e}")
+        return None
 
-if not file_path:
-    print("You must provide a file path.")
-    raise SystemExit(1)
+def process_content(content):
+    """Add line numbers to the content."""
+    lines = content.split('\n')
+    numbered_content = []
+    
+    for i, line in enumerate(lines, 1):
+        numbered_content.append(f"Line {i}: {line}")
+    
+    return '\n'.join(numbered_content)
 
-# 2) Try to read the file
-try:
-    with open(file_path, "r", encoding="utf-8-sig") as file_handle:
-        original_text = file_handle.read()
-except FileNotFoundError:
-    print(f"File not found: {file_path}")
-    raise SystemExit(1)
-except IsADirectoryError:
-    print(f"That path is a directory, not a file: {file_path}")
-    raise SystemExit(1)
-except PermissionError:
-    print(f"Permission denied when reading: {file_path}")
-    raise SystemExit(1)
-except UnicodeDecodeError:
-    print("Could not read the file as text (UTF-8). It may be binary.")
-    raise SystemExit(1)
-except OSError as error:
-    print(f"OS error while reading: {error}")
-    raise SystemExit(1)
+def write_file(filename, content):
+    """Write content to a new file."""
+    try:
+        # Create new filename
+        name, ext = filename.rsplit('.', 1) if '.' in filename else (filename, '')
+        new_filename = f"{name}_processed.{ext}" if ext else f"{name}_processed"
+        
+        with open(new_filename, 'w', encoding='utf-8') as file:
+            file.write(content)
+        
+        print(f" Successfully wrote to '{new_filename}'")
+        return True
+    except Exception as e:
+        print(f" Error writing file: {e}")
+        return False
 
-# 3) Modify the content (here: add line numbers)
-lines = original_text.splitlines()
-numbered_lines = []
-for index, line in enumerate(lines, start=1):
-    numbered_lines.append(f"{index}: {line}")
+def main():
+    """Main program function."""
+    print("=" * 50)
+    print(" SIMPLE FILE PROCESSOR")
+    print("=" * 50)
+    
+    while True:
+        print("\nOptions:")
+        print("1. Process a file")
+        print("2. Create sample file")
+        print("3. Exit")
+        
+        choice = input("\nChoose an option (1-3): ").strip()
+        
+        if choice == '1':
+            # Get filename from user
+            filename = input("Enter filename to process: ").strip()
+            
+            if not filename:
+                print(" Please enter a valid filename!")
+                continue
+            
+            # Read the file
+            content = read_file(filename)
+            if content is None:
+                continue
+            
+            # Process the content
+            print(f" Processing {len(content.split())} words...")
+            modified_content = process_content(content)
+            
+            # Write the modified content
+            if write_file(filename, modified_content):
+                print(" File processing completed successfully!")
+            
+        elif choice == '2':
+            # Create a sample file
+            sample_content = """Hello! This is a sample file."""
+            
+            try:
+                with open("sample.txt", "w", encoding="utf-8") as file:
+                    file.write(sample_content)
+                print(" Created 'sample.txt' - you can now process it!")
+            except Exception as e:
+                print(f" Error creating sample file: {e}")
+                
+        elif choice == '3':
+            print(" Goodbye!")
+            break
+            
+        else:
+            print(" Invalid choice! Please choose 1, 2, or 3.")
 
-modified_text = "\n".join(numbered_lines)
-if original_text.endswith("\n"):
-    # keep a trailing newline if the original had one
-    modified_text += "\n"
-
-# 4) Build the output file name (same folder, add _modified before extension)
-folder, base_name = os.path.split(file_path)
-name, ext = os.path.splitext(base_name)
-if not ext:
-    ext = ".txt"  # give a default extension if none
-output_name = f"{name}_modified{ext}"
-output_path = os.path.join(folder or os.getcwd(), output_name)
-
-# 5) Write the modified content to the new file
-try:
-    with open(output_path, "w", encoding="utf-8") as file_handle:
-        file_handle.write(modified_text)
-except PermissionError:
-    print(f"Permission denied when writing: {output_path}")
-    raise SystemExit(1)
-except OSError as error:
-    print(f"OS error while writing: {error}")
-    raise SystemExit(1)
-
-print(f"Modified file written to: {output_path}")
-
+if __name__ == "__main__":
+    main()
